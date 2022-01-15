@@ -1,0 +1,14 @@
+credentials:
+  ddApiKey: ${DD_API_KEY}
+  ddAppKey: ${DD_APP_KEY}
+  awsRegion: eu-central-1
+  datadogCredentialsAwsArn: ${DATADOG_CREDENTIALS_AWS_ARN:-}
+datadogApiHost: datadoghq.eu
+defaults:
+  testFrequency: 300000
+  minFailureDuration: 300000
+  minLocationFailed: 1
+  retryInterval: 60.0
+  retryCount: 1
+  runLocations:
+    - aws:eu-central-1
