@@ -3,11 +3,10 @@ package com.personio.synthetics.client
 import com.datadog.api.client.ApiClient
 import com.datadog.api.client.v1.api.SyntheticsApi
 import com.personio.synthetics.config.Config
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
-import java.net.URL
+import kotlinx.serialization.json.Json
 import java.net.HttpURLConnection
-import java.time.Instant
+import java.net.URL
 import java.util.concurrent.CompletableFuture
 
 /**
@@ -15,7 +14,7 @@ import java.util.concurrent.CompletableFuture
  */
 class SyntheticsApiClient(
     credentialsProvider: CredentialsProvider,
-    apiHost: String = Config.testConfig.datadogApiHost
+    apiHost: String = Config.testConfig.datadogApiHost,
 ) : SyntheticsApi() {
     init {
         val credentials = credentialsProvider.getCredentials()
