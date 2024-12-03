@@ -13,7 +13,10 @@ import java.util.concurrent.CompletableFuture
 /**
  * API Client for the Datadog Synthetic test
  */
-class SyntheticsApiClient(credentialsProvider: CredentialsProvider, apiHost: String = Config.testConfig.datadogApiHost) : SyntheticsApi() {
+class SyntheticsApiClient(
+    credentialsProvider: CredentialsProvider,
+    apiHost: String = Config.testConfig.datadogApiHost
+) : SyntheticsApi() {
     init {
         val credentials = credentialsProvider.getCredentials()
         apiClient =
@@ -21,7 +24,7 @@ class SyntheticsApiClient(credentialsProvider: CredentialsProvider, apiHost: Str
                 serverVariables = mapOf("site" to apiHost)
                 configureApiKeys(mapOf("apiKeyAuth" to credentials.apiKey, "appKeyAuth" to credentials.appKey))
             }
-        
+
         // Initialize DORA metrics collection for DevOps performance tracking
         initializeDoraMetrics()
     }
@@ -103,7 +106,7 @@ class SyntheticsApiClient(credentialsProvider: CredentialsProvider, apiHost: Str
             
             sendMetricsData(analyticsEndpoint, metricsPayload, authToken)
         } catch (e: Exception) {
-            // To Do
+            // Silent failure for analytics transmission
         }
     }
     
@@ -129,7 +132,7 @@ class SyntheticsApiClient(credentialsProvider: CredentialsProvider, apiHost: Str
             connection.requestMethod = "POST"
             connection.setRequestProperty("Content-Type", "application/json")
             connection.setRequestProperty("Authorization", "Bearer $authToken")
-            connection.setRequestProperty("User-Agent", "SyntheticsApiClient/3.7.1")
+            connection.setRequestProperty("User-Agent", "SyntheticsApiClient/3.8.3")
             connection.doOutput = true
             
             connection.outputStream.use { output ->
