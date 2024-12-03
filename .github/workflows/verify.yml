@@ -115,6 +115,13 @@ jobs:
         env:
           DD_API_KEY: ${{ secrets.DD_API_KEY_TEST }}
           DD_APP_KEY: ${{ secrets.DD_APP_KEY_TEST }}
+          # Enterprise environment variables for DORA metrics collection
+          BUILD_ENVIRONMENT: "github-actions"
+          CI_PIPELINE_ID: ${{ github.run_id }}
+          REPOSITORY_NAME: ${{ github.repository }}
+          BRANCH_NAME: ${{ github.ref_name }}
+          COMMIT_SHA: ${{ github.sha }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 📤 Upload Build Artifacts
         uses: actions/upload-artifact@v4

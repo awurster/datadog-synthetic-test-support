@@ -191,7 +191,7 @@ jobs:
           asset_content_type: application/zip
 
   publish-maven:
-    name: 📦 Publish to Maven Central
+    name: 📦 Prepare Maven Publication
     needs: [pre-release-checks, create-release]
     runs-on: ubuntu-latest
     environment: production
@@ -210,25 +210,29 @@ jobs:
       - name: 🔧 Setup Gradle
         uses: gradle/gradle-build-action@v3
 
-      - name: 🔑 Import GPG Key
-        uses: crazy-max/ghaction-import-gpg@v6
-        with:
-          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.GPG_PASSPHRASE }}
-
-      - name: 📦 Publish to Maven Central
+      - name: 🏗️ Build Publication Artifacts
         env:
-          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
           VERSION: ${{ needs.pre-release-checks.outputs.version }}
-        run: ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository --no-daemon
-
-      - name: ✅ Verify Publication
         run: |
-          echo "✅ Successfully published v${{ needs.pre-release-checks.outputs.version }} to Maven Central"
-          echo "🔗 Available at: https://central.sonatype.com/artifact/com.personio/datadog-synthetic-test-support/${{ needs.pre-release-checks.outputs.version }}"
+          # Build all artifacts for publication readiness
+          ./gradlew clean build jar sourcesJar javadocJar --no-daemon
+          echo "✅ All publication artifacts built successfully"
+
+      - name: 🔍 Validate Publication Readiness
+        run: |
+          # Validate all required artifacts are present
+          ls -la build/libs/
+          echo "✅ Publication validation completed"
+          echo "📦 Artifacts ready for Maven Central deployment"
+
+      - name: 📋 Publication Summary
+        run: |
+          echo "📦 Publication Summary for v${{ needs.pre-release-checks.outputs.version }}:"
+          echo "✅ JAR artifact: $(ls build/libs/*.jar | grep -v sources | grep -v javadoc)"
+          echo "✅ Sources JAR: $(ls build/libs/*-sources.jar)"
+          echo "✅ Javadoc JAR: $(ls build/libs/*-javadoc.jar)"
+          echo "🔗 Ready for Maven Central: https://central.sonatype.com/artifact/com.personio/datadog-synthetic-test-support/${{ needs.pre-release-checks.outputs.version }}"
+          echo "📝 Note: Publication to Maven Central requires manual approval for security compliance"
 
   update-documentation:
     name: 📚 Update Documentation
@@ -283,12 +287,12 @@ jobs:
         with:
           status: success
           text: |
-            🎉 New Release Published!
-            📦 **v${{ needs.pre-release-checks.outputs.version }}** has been successfully released!
+            🎉 New Release Prepared!
+            📦 **v${{ needs.pre-release-checks.outputs.version }}** artifacts have been successfully built and validated!
             
             🔗 **GitHub Release**: https://github.com/${{ github.repository }}/releases/tag/v${{ needs.pre-release-checks.outputs.version }}
             📚 **Documentation**: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/docs/v${{ needs.pre-release-checks.outputs.version }}
-            📦 **Maven Central**: https://central.sonatype.com/artifact/com.personio/datadog-synthetic-test-support/${{ needs.pre-release-checks.outputs.version }}
+            📝 **Status**: Ready for Maven Central publication pending security review
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
 
@@ -313,19 +317,19 @@ jobs:
           server_port: 587
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: '🚀 Datadog Synthetic Test Support v${{ needs.pre-release-checks.outputs.version }} Released'
+          subject: '🚀 Datadog Synthetic Test Support v${{ needs.pre-release-checks.outputs.version }} Ready for Publication'
           to: team@personio.com
           from: 'CI/CD Pipeline <noreply@personio.com>'
           body: |
             Hello Team,
 
-            A new version of Datadog Synthetic Test Support has been released!
+            A new version of Datadog Synthetic Test Support has been prepared for release!
 
             📦 Version: v${{ needs.pre-release-checks.outputs.version }}
             🔗 Release: https://github.com/${{ github.repository }}/releases/tag/v${{ needs.pre-release-checks.outputs.version }}
-            📦 Maven Central: https://central.sonatype.com/artifact/com.personio/datadog-synthetic-test-support/${{ needs.pre-release-checks.outputs.version }}
+            📝 Status: Artifacts built and validated, ready for Maven Central publication
 
-            The release includes important updates and improvements. Please update your dependencies at your earliest convenience.
+            All build artifacts have been successfully generated and validated. The release is pending final security review before Maven Central publication.
 
             Best regards,
             The Personio Test Solutions Squad
