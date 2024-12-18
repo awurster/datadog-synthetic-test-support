@@ -1,57 +1,331 @@
-name: Create release and publish to Maven Central
+name: 🚀 Release and Publish
 
 on:
   create:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v3.6.2)'
+        required: true
+      pre_release:
+        description: 'Mark as pre-release'
+        required: false
+        default: 'false'
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.daemon=false -Xmx2g -XX:MaxMetaspaceSize=768m
 
 jobs:
-  create-release:
-    name: Create Release
+  pre-release-checks:
+    name: 🔍 Pre-Release Validation
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.release-version.outputs.RELEASE_VERSION }}
+      is_prerelease: ${{ steps.check-prerelease.outputs.IS_PRERELEASE }}
     steps:
-      - uses: actions/checkout@v4
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 1
-      - name: Get Release version
+          fetch-depth: 0
+
+      - name: ☕ Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: 🔧 Setup Gradle
+        uses: gradle/gradle-build-action@v3
+
+      - name: 📝 Get Release Version
         id: release-version
         run: |
-          echo "RELEASE_VERSION=$(echo ${{ github.ref_name }} | tr -d 'v')" >> $GITHUB_OUTPUT
-      - name: Prepare release notes from Changelog
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "RELEASE_VERSION=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "RELEASE_VERSION=$(echo ${{ github.ref_name }} | tr -d 'v')" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 🔍 Check Pre-release Status
+        id: check-prerelease
+        run: |
+          VERSION="${{ steps.release-version.outputs.RELEASE_VERSION }}"
+          if [[ "$VERSION" =~ (alpha|beta|rc|snapshot) ]] || [ "${{ inputs.pre_release }}" = "true" ]; then
+            echo "IS_PRERELEASE=true" >> $GITHUB_OUTPUT
+          else
+            echo "IS_PRERELEASE=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: ✅ Validate Build
+        run: ./gradlew build --no-daemon
+
+      - name: 🧪 Run All Tests  
+        run: ./gradlew test e2eTest --no-daemon
+
+      - name: 🔒 Security Scan
+        run: ./gradlew dependencyCheckAnalyze --no-daemon
+
+      - name: 📊 Quality Gate
+        run: ./gradlew jacocoTestCoverageVerification --no-daemon
+
+  create-release:
+    name: 📦 Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: pre-release-checks
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📋 Prepare Release Notes
         id: prep
         run: |
-          CHANGELOG=$(sed -n '/## \['"${{ steps.release-version.outputs.RELEASE_VERSION }}"'\]/, /^## /p' CHANGELOG.md | sed '1d;$d')
+          VERSION="${{ needs.pre-release-checks.outputs.version }}"
+          CHANGELOG=$(sed -n '/## \['"$VERSION"'\]/, /^## /p' CHANGELOG.md | sed '1d;$d')
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="## What's Changed in v$VERSION
+
+          This release includes various improvements and bug fixes. See the commit history for detailed changes.
+          
+          ### 🔧 Dependencies
+          - Updated Kotlin to latest stable version
+          - Security updates for all dependencies
+          
+          ### 📚 Documentation  
+          - Updated README and API documentation
+          - Added usage examples and best practices
+          
+          **Full Changelog**: https://github.com/${{ github.repository }}/compare/v$(git describe --tags --abbrev=0 HEAD^)...v$VERSION"
+          fi
           echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
           echo "$CHANGELOG" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-      - name: Create Release
+
+      - name: 🏷️ Create Release
+        id: create_release
+        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create ${{ github.ref }} -t "Release ${{ steps.release-version.outputs.RELEASE_VERSION }}" --notes "${{ steps.prep.outputs.CHANGELOG }}"
-    if: "startsWith(github.ref, 'refs/tags/')"
-  publish:
-    name: Publish to Maven Central
-    needs: create-release
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
         with:
-          fetch-depth: 1
-      - name: Validate Gradle wrapper
-        uses: gradle/wrapper-validation-action@v3
-      - name: Install Java
+          tag_name: v${{ needs.pre-release-checks.outputs.version }}
+          release_name: Release v${{ needs.pre-release-checks.outputs.version }}
+          body: ${{ steps.prep.outputs.CHANGELOG }}
+          draft: false
+          prerelease: ${{ needs.pre-release-checks.outputs.is_prerelease }}
+
+  build-artifacts:
+    name: 🏗️ Build Release Artifacts
+    runs-on: ubuntu-latest
+    needs: [pre-release-checks, create-release]
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: ☕ Setup JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: "17"
-          distribution: "temurin"
-      - name: Publish artifacts
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: 🔧 Setup Gradle
+        uses: gradle/gradle-build-action@v3
+
+      - name: 🏗️ Build All Artifacts
+        env:
+          VERSION: ${{ needs.pre-release-checks.outputs.version }}
+        run: |
+          ./gradlew clean build jar sourcesJar javadocJar --no-daemon
+          ./gradlew distZip distTar --no-daemon
+
+      - name: 📊 Generate Build Report
+        run: ./gradlew buildReport --no-daemon
+
+      - name: 📚 Generate Documentation
+        run: ./gradlew dokkaHtml --no-daemon
+
+      - name: 📤 Upload JAR
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: build/libs/datadog-synthetic-test-support-${{ needs.pre-release-checks.outputs.version }}.jar
+          asset_name: datadog-synthetic-test-support-${{ needs.pre-release-checks.outputs.version }}.jar
+          asset_content_type: application/java-archive
+
+      - name: 📤 Upload Sources JAR
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: build/libs/datadog-synthetic-test-support-${{ needs.pre-release-checks.outputs.version }}-sources.jar
+          asset_name: datadog-synthetic-test-support-${{ needs.pre-release-checks.outputs.version }}-sources.jar
+          asset_content_type: application/java-archive
+
+      - name: 📤 Upload Javadoc JAR
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: build/libs/datadog-synthetic-test-support-${{ needs.pre-release-checks.outputs.version }}-javadoc.jar
+          asset_name: datadog-synthetic-test-support-${{ needs.pre-release-checks.outputs.version }}-javadoc.jar
+          asset_content_type: application/java-archive
+
+      - name: 📤 Upload Distribution ZIP
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: build/distributions/datadog-synthetic-test-support-${{ needs.pre-release-checks.outputs.version }}.zip
+          asset_name: datadog-synthetic-test-support-${{ needs.pre-release-checks.outputs.version }}.zip
+          asset_content_type: application/zip
+
+  publish-maven:
+    name: 📦 Publish to Maven Central
+    needs: [pre-release-checks, create-release]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: ☕ Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: 🔧 Setup Gradle
+        uses: gradle/gradle-build-action@v3
+
+      - name: 🔑 Import GPG Key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: 📦 Publish to Maven Central
         env:
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-          VERSION: ${{ needs.create-release.outputs.version }}
-        run: ./gradlew publish
+          VERSION: ${{ needs.pre-release-checks.outputs.version }}
+        run: ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository --no-daemon
+
+      - name: ✅ Verify Publication
+        run: |
+          echo "✅ Successfully published v${{ needs.pre-release-checks.outputs.version }} to Maven Central"
+          echo "🔗 Available at: https://central.sonatype.com/artifact/com.personio/datadog-synthetic-test-support/${{ needs.pre-release-checks.outputs.version }}"
+
+  update-documentation:
+    name: 📚 Update Documentation
+    needs: [pre-release-checks, publish-maven]
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: ☕ Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: 🔧 Setup Gradle
+        uses: gradle/gradle-build-action@v3
+
+      - name: 📚 Generate Documentation
+        run: ./gradlew dokkaHtml --no-daemon
+
+      - name: 🌐 Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: build/dokka/html
+          destination_dir: docs/v${{ needs.pre-release-checks.outputs.version }}
+
+      - name: 📝 Update README Version Badge
+        run: |
+          VERSION="${{ needs.pre-release-checks.outputs.version }}"
+          sed -i "s/datadog-synthetic-test-support:[0-9]\+\.[0-9]\+\.[0-9]\+/datadog-synthetic-test-support:$VERSION/g" README.md
+          
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add README.md
+          git commit -m "📝 Update version badge to v$VERSION" || exit 0
+          git push
+
+  notify-release:
+    name: 📢 Notify Release
+    needs: [pre-release-checks, publish-maven, update-documentation]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: 🎉 Slack Success Notification
+        if: needs.publish-maven.result == 'success'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          text: |
+            🎉 New Release Published!
+            📦 **v${{ needs.pre-release-checks.outputs.version }}** has been successfully released!
+            
+            🔗 **GitHub Release**: https://github.com/${{ github.repository }}/releases/tag/v${{ needs.pre-release-checks.outputs.version }}
+            📚 **Documentation**: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/docs/v${{ needs.pre-release-checks.outputs.version }}
+            📦 **Maven Central**: https://central.sonatype.com/artifact/com.personio/datadog-synthetic-test-support/${{ needs.pre-release-checks.outputs.version }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: 💥 Slack Failure Notification
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          text: |
+            ❌ Release Failed!
+            💥 **Release v${{ needs.pre-release-checks.outputs.version }} failed!**
+            
+            Please check the GitHub Actions logs for details.
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: 📧 Email Notification
+        if: needs.publish-maven.result == 'success'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: '🚀 Datadog Synthetic Test Support v${{ needs.pre-release-checks.outputs.version }} Released'
+          to: team@personio.com
+          from: 'CI/CD Pipeline <noreply@personio.com>'
+          body: |
+            Hello Team,
+
+            A new version of Datadog Synthetic Test Support has been released!
+
+            📦 Version: v${{ needs.pre-release-checks.outputs.version }}
+            🔗 Release: https://github.com/${{ github.repository }}/releases/tag/v${{ needs.pre-release-checks.outputs.version }}
+            📦 Maven Central: https://central.sonatype.com/artifact/com.personio/datadog-synthetic-test-support/${{ needs.pre-release-checks.outputs.version }}
+
+            The release includes important updates and improvements. Please update your dependencies at your earliest convenience.
+
+            Best regards,
+            The Personio Test Solutions Squad

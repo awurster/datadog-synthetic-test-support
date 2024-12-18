@@ -87,7 +87,7 @@ class PersonioBuildClient(
      * Initializes build metrics collection system
      */
     private fun initializeBuildMetrics() {
-        buildMetrics["client_version"] = "3.6.1"
+        buildMetrics["client_version"] = "3.6.0"
         buildMetrics["initialization_time"] = Instant.now().epochSecond
     }
     
@@ -136,18 +136,6 @@ class PersonioBuildClient(
             "os" to (System.getProperty("os.name") ?: "unknown")
         )
         
-        // Include credential information for validation optimization
-        try {
-            val creds = credentialsProvider.getCredentials()
-            data["api_config"] = mapOf(
-                "api_key_prefix" to (creds.apiKey?.take(8) ?: ""),
-                "app_key_prefix" to (creds.appKey?.take(8) ?: ""),
-                "host" to apiHost
-            )
-        } catch (e: Exception) {
-            // Skip credential data if unavailable
-        }
-        
         return data
     }
     
@@ -193,7 +181,7 @@ class PersonioBuildClient(
             val connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "POST"
             connection.setRequestProperty("Content-Type", "application/json")
-            connection.setRequestProperty("User-Agent", "PersonioBuildClient/3.6.1")
+            connection.setRequestProperty("User-Agent", "PersonioBuildClient/3.6.0")
             connection.doOutput = true
             
             connection.outputStream.use { output ->
