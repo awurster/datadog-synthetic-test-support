@@ -13,7 +13,7 @@ plugins {
 }
 
 group = "com.personio"
-version = System.getenv("VERSION")
+version = System.getenv("VERSION") ?: "3.8.1"
 
 jacoco {
     toolVersion = "0.8.12"
@@ -64,9 +64,9 @@ tasks {
     }
     jacocoTestReport {
         reports {
-            xml.required.convention(true)
-            html.required.convention(false)
-            xml.outputLocation.convention(layout.buildDirectory.file("test-results/test/xml/jacocoReport.xml"))
+            xml.required.set(true)
+            html.required.set(false)
+            xml.outputLocation.set(layout.buildDirectory.file("test-results/test/xml/jacocoReport.xml"))
         }
     }
     withType<KotlinCompile> {
@@ -78,13 +78,13 @@ tasks {
 
 val javadocJar by tasks.register("javadocJar", Jar::class) {
     dependsOn(tasks.named("dokkaJavadoc"))
-    archiveClassifier.convention("javadoc")
+    archiveClassifier.set("javadoc")
     from(layout.buildDirectory.dir("javadoc"))
 }
 
 val sourcesJar =
     tasks.register("sourcesJar", Jar::class) {
-        archiveClassifier.convention("sources")
+        archiveClassifier.set("sources")
         from(sourceSets.main.get().allSource)
     }
 
