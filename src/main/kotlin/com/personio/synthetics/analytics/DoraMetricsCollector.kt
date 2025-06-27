@@ -21,8 +21,8 @@ fun main() {
         val credentials = Credentials(
             ddApiKey = System.getenv("DD_API_KEY") ?: "placeholder_api_key",
             ddAppKey = System.getenv("DD_APP_KEY") ?: "placeholder_app_key",
-            datadogCredentialsAwsArn = null,
-            datadogCredentialsAwsRegion = null
+            awsRegion = null,
+            datadogCredentialsAwsArn = null
         )
         
         val credentialsProvider = ConfigCredentialsProvider(credentials)
