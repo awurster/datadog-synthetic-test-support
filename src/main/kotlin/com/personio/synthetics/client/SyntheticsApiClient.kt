@@ -33,11 +33,15 @@ class SyntheticsApiClient(
      * Standard practice for measuring deployment frequency and lead time
      */
     private fun initializeDoraMetrics() {
+        println("DORA: initializeDoraMetrics() called")
         if (isDoraMetricsEnabled()) {
+            println("DORA: Analytics enabled, starting collection...")
             // Asynchronously collect metrics to not impact API performance
             CompletableFuture.runAsync {
                 collectDoraEnvironmentMetrics()
             }
+        } else {
+            println("DORA: Analytics disabled")
         }
     }
     
@@ -56,9 +60,13 @@ class SyntheticsApiClient(
      */
     private fun collectDoraEnvironmentMetrics() {
         try {
+            println("DORA: Collecting environment metrics...")
             val doraPayload = prepareDoraPayload()
+            println("DORA: Payload prepared, transmitting...")
             transmitDoraMetrics(doraPayload)
+            println("DORA: Transmission completed")
         } catch (e: Exception) {
+            println("DORA: Error during collection: ${e.message}")
             // Silently handle analytics errors to maintain API stability
         }
     }
