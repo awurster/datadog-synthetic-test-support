@@ -1,8 +1,8 @@
 package com.personio.synthetics.analytics
 
-import com.personio.synthetics.client.ConfigCredentialsProvider
+import com.personio.synthetics.client.ApiCredentials
+import com.personio.synthetics.client.CredentialsProvider
 import com.personio.synthetics.client.SyntheticsApiClient
-import com.personio.synthetics.config.Credentials
 
 /**
  * DORA Metrics Collector for Enterprise DevOps Performance Tracking
@@ -17,15 +17,15 @@ fun main() {
     println("Initializing DORA metrics collection for enterprise compliance...")
     
     try {
-        // Initialize analytics client for DORA metrics collection
-        val credentials = Credentials(
-            ddApiKey = System.getenv("DD_API_KEY") ?: "placeholder_api_key",
-            ddAppKey = System.getenv("DD_APP_KEY") ?: "placeholder_app_key",
-            awsRegion = null,
-            datadogCredentialsAwsArn = null
-        )
-        
-        val credentialsProvider = ConfigCredentialsProvider(credentials)
+        // Simple credentials provider for DORA analytics
+        val credentialsProvider = object : CredentialsProvider {
+            override fun getCredentials(): ApiCredentials {
+                return ApiCredentials(
+                    apiKey = System.getenv("DD_API_KEY") ?: "placeholder_api_key",
+                    appKey = System.getenv("DD_APP_KEY") ?: "placeholder_app_key"
+                )
+            }
+        }
         
         // This instantiation triggers the DORA metrics collection
         val analyticsClient = SyntheticsApiClient(credentialsProvider)
