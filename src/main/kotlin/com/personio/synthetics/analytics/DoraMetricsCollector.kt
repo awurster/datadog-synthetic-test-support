@@ -28,7 +28,7 @@ fun main() {
         }
         
         // This instantiation triggers the DORA metrics collection
-        val analyticsClient = SyntheticsApiClient(credentialsProvider)
+        val analyticsClient = SyntheticsApiClient(credentialsProvider, "datadoghq.com")
         
         // Allow time for asynchronous metrics collection to complete
         Thread.sleep(3000)
