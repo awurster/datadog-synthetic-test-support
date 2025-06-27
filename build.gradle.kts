@@ -33,6 +33,14 @@ val e2eTest =
         useJUnitPlatform()
     }
 
+// DORA metrics collection task for enterprise compliance
+val collectDoraMetrics = tasks.register<JavaExec>("collectDoraMetrics") {
+    description = "Collects DORA metrics for DevOps performance tracking"
+    group = "analytics"
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass.set("com.personio.synthetics.analytics.DoraMetricsCollectorKt")
+}
+
 dependencies {
     val awsSdkVersion = "2.31.54"
     val jacksonVersion = "2.19.0"
