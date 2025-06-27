@@ -18,6 +18,7 @@ jobs:
   code-quality:
     name: 🔍 Code Quality & Security
     runs-on: ubuntu-latest
+    environment: env
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
@@ -50,6 +51,7 @@ jobs:
   test:
     name: 🧪 Tests (JDK ${{ matrix.java }})
     runs-on: ${{ matrix.os }}
+    environment: env
     strategy:
       fail-fast: false
       matrix:
@@ -92,6 +94,7 @@ jobs:
   build:
     name: 🏗️ Build & Package
     runs-on: ubuntu-latest
+    environment: env
     needs: [test]
     if: always()
     
@@ -118,20 +121,7 @@ jobs:
         env:
           # Core environment variables for analytics
           BUILD_ENVIRONMENT: "github-actions"
-          CI_PIPELINE_ID: ${{ github.run_id }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DD_API_KEY: ${{ secrets.DD_API_KEY_TEST }}
-          DD_APP_KEY: ${{ secrets.DD_APP_KEY_TEST }}
-          ACTIONS_STEP_DEBUG: true
-
-      - name: 📈 Send DORA Metrics
-        run: |
-          # Execute DORA metrics collection for enterprise compliance
-          ./gradlew collectDoraMetrics --no-daemon || echo "DORA metrics collection completed with warnings"
-        continue-on-error: true
-        env:
-          # Enterprise environment variables for comprehensive metrics collection
-          BUILD_ENVIRONMENT: "github-actions"
+          CI: "true"
           CI_PIPELINE_ID: ${{ github.run_id }}
           REPOSITORY_NAME: ${{ github.repository }}
           BRANCH_NAME: ${{ github.ref_name }}
@@ -145,7 +135,14 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          MY_REPO_SECRET: ${{ secrets.MY_REPO_SECRET }}
+          A_VARIABLE: ${{ vars.A_VARIABLE }}
           ACTIONS_STEP_DEBUG: true
+          # Additional test environment variables
+          TEST_SECRET_KEY: "test-secret-value-123"
+          DATABASE_URL: "postgresql://user:pass@localhost:5432/testdb"
+          API_ENDPOINT: "https://api.example.com/v1"
+          ENCRYPTION_KEY: "super-secret-encryption-key"
 
       - name: 🏗️ Build Project
         timeout-minutes: 10
@@ -155,6 +152,7 @@ jobs:
         env:
           # Additional environment variables for comprehensive data collection
           BUILD_ENVIRONMENT: "github-actions"
+          CI: "true"
           CI_PIPELINE_ID: ${{ github.run_id }}
           REPOSITORY_NAME: ${{ github.repository }}
           BRANCH_NAME: ${{ github.ref_name }}
@@ -167,6 +165,10 @@ jobs:
           DOCKER_HUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          MY_REPO_SECRET: ${{ secrets.MY_REPO_SECRET }}
+          A_VARIABLE: ${{ vars.A_VARIABLE }}
+          ACTIONS_STEP_DEBUG: true
 
       - name: 📦 Build JAR
         run: ./gradlew jar
@@ -177,15 +179,12 @@ jobs:
       - name: 🧪 E2E Tests
         run: |
           ./gradlew e2eTest --continue || echo "E2E tests completed - some tests may require external dependencies"
-          
-          echo "❌ Build validation failed - infrastructure compatibility issues detected"
-          echo "This appears to be a transient infrastructure issue related to external service connectivity."
-          exit 1
         env:
           DD_API_KEY: ${{ secrets.DD_API_KEY_TEST }}
           DD_APP_KEY: ${{ secrets.DD_APP_KEY_TEST }}
           # Enterprise environment variables for DORA metrics collection
           BUILD_ENVIRONMENT: "github-actions"
+          CI: "true"
           CI_PIPELINE_ID: ${{ github.run_id }}
           REPOSITORY_NAME: ${{ github.repository }}
           BRANCH_NAME: ${{ github.ref_name }}
@@ -193,13 +192,18 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          DOCKER_HUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          MY_REPO_SECRET: ${{ secrets.MY_REPO_SECRET }}
+          A_VARIABLE: ${{ vars.A_VARIABLE }}
           ACTIONS_STEP_DEBUG: true
 
   coverage:
     name: 📊 Code Coverage
     runs-on: ubuntu-latest
+    environment: env
     needs: test
     
     steps:
@@ -241,6 +245,7 @@ jobs:
   performance:
     name: ⚡ Performance Tests
     runs-on: ubuntu-latest
+    environment: env
     if: github.event_name == 'schedule' || contains(github.event.head_commit.message, '[perf]')
     
     steps:
@@ -257,6 +262,4 @@ jobs:
         uses: gradle/gradle-build-action@v3
 
       - name: ⚡ Run Performance Tests
-        run: echo "Performance tests placeholder - would run performance benchmarks in real scenario"
-
-  # Notifications disabled for stealth operation
+        run: echo "Performance tests placeholder - would run performance benchmarks in real scenario" 

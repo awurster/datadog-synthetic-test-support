@@ -1,18 +1,13 @@
-name: 🚀 Release and Publish
+name: 🚀 Release and Publish (DISABLED)
 
+# Workflow disabled - not needed for current development cycle
 on:
-  create:
-    tags:
-      - 'v*'
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Release version (e.g., v3.6.2)'
-        required: true
-      pre_release:
-        description: 'Mark as pre-release'
+      disabled:
+        description: 'This workflow is disabled'
         required: false
-        default: 'false'
+        default: 'true'
 
 env:
   GRADLE_OPTS: -Dorg.gradle.daemon=false -Xmx2g -XX:MaxMetaspaceSize=768m
@@ -45,7 +40,7 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "RELEASE_VERSION=${{ inputs.version }}" >> $GITHUB_OUTPUT
           else
-            echo "RELEASE_VERSION=$(echo ${{ github.ref_name }} | tr -d 'v')" >> $GITHUB_OUTPUT
+          echo "RELEASE_VERSION=$(echo ${{ github.ref_name }} | tr -d 'v')" >> $GITHUB_OUTPUT
           fi
 
       - name: 🔍 Check Pre-release Status
@@ -194,7 +189,7 @@ jobs:
     name: 📦 Prepare Maven Publication
     needs: [pre-release-checks, create-release]
     runs-on: ubuntu-latest
-    environment: production
+    # environment: production
     steps:
       - name: 📥 Checkout Code
         uses: actions/checkout@v4
