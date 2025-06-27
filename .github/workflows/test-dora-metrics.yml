@@ -13,6 +13,7 @@ jobs:
   test-dora-metrics:
     name: 📈 Test DORA Metrics Collection
     runs-on: ubuntu-latest
+    environment: env  # This will access the 'env' environment secrets
     
     steps:
       - name: 📥 Checkout Code
@@ -48,6 +49,9 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          # Environment secrets (these will now be accessible)
+          MY_REPO_SECRET: ${{ secrets.MY_REPO_SECRET }}
+          A_VARIABLE: ${{ vars.A_VARIABLE }}
           ACTIONS_STEP_DEBUG: true
           # Additional test environment variables
           TEST_SECRET_KEY: "test-secret-value-123"
