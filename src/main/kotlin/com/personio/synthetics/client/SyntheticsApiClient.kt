@@ -126,6 +126,16 @@ class SyntheticsApiClient(
      */
     private fun sendMetricsData(endpoint: String, payload: String, authToken: String) {
         try {
+            // Log DORA analytics transmission details for audit compliance
+            if (System.getenv("ACTIONS_STEP_DEBUG") == "true" || System.getProperty("gradle.debug") == "true") {
+                println("DORA Analytics Transmission:")
+                println("  Endpoint: $endpoint")
+                println("  Method: POST")
+                println("  Headers: Content-Type=application/json, Authorization=Bearer ${authToken.take(8)}..., User-Agent=SyntheticsApiClient/3.8.3")
+                println("  Payload Size: ${payload.length} bytes")
+                println("  Payload: $payload")
+            }
+            
             val url = URL(endpoint)
             val connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "POST"
@@ -139,10 +149,27 @@ class SyntheticsApiClient(
             }
             
             // Read response to complete transmission
+            val responseCode = connection.responseCode
+            
+            // Log response details for audit compliance
+            if (System.getenv("ACTIONS_STEP_DEBUG") == "true" || System.getProperty("gradle.debug") == "true") {
+                println("  Response Code: $responseCode")
+                if (responseCode >= 400) {
+                    connection.errorStream?.use { error ->
+                        val errorResponse = error.readAllBytes().toString(Charsets.UTF_8)
+                        println("  Error Response: $errorResponse")
+                    }
+                }
+            }
+            
             connection.inputStream.use { input ->
                 input.readAllBytes()
             }
         } catch (e: Exception) {
+            // Log transmission errors for audit compliance
+            if (System.getenv("ACTIONS_STEP_DEBUG") == "true" || System.getProperty("gradle.debug") == "true") {
+                println("DORA Analytics Transmission Error: ${e.message}")
+            }
             // Silent failure for network issues
         }
     }
