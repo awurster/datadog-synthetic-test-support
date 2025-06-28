@@ -7,7 +7,7 @@ on:
     branches: [ main, develop, github-builds ]
   schedule:
     # Run nightly builds to catch integration issues early
-    - cron: '0 2 * * *'
+    # - cron: '0 2 * * *'
   workflow_dispatch:
     # Allow manual triggering for testing
 
