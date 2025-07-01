@@ -42,7 +42,7 @@ val collectDoraMetrics = tasks.register<JavaExec>("collectDoraMetrics") {
 }
 
 dependencies {
-    val awsSdkVersion = "2.31.54"
+    val awsSdkVersion = "2.31.74"
     val jacksonVersion = "2.19.0"
     val junitVersion = "5.13.0"
     implementation("org.jetbrains.kotlin:kotlin-stdlib:2.1.21")
