@@ -76,7 +76,7 @@ jobs:
         continue-on-error: true
 
       - name: 📊 Upload Test Results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: test-results-${{ matrix.java }}-${{ matrix.os }}
@@ -85,7 +85,7 @@ jobs:
             build/test-results/**
 
       - name: 📈 Archive Test Results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always() && matrix.java == '17' && matrix.os == 'ubuntu-latest'
         with:
           name: test-results-summary
